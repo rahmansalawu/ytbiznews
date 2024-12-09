@@ -1,0 +1,12 @@
+{
+  "name": "youtube-page-fetcher",
+  "version": "1.0.0",
+  "description": "A tool to fetch YouTube video links using Puppeteer",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.6.1"
+  }
+}
