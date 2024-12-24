@@ -1,36 +1,48 @@
+/**
+ * YouTube Business News Scraper
+ * This script automates the process of scraping video information from YouTube's business news feed.
+ * It uses Puppeteer for browser automation and saves the results in a CSV format.
+ */
+
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Fetches video information from a YouTube page
+ * @param {string} url - The YouTube URL to scrape
+ * @returns {Promise<Array<{url: string, title: string, channel: string}>>} Array of video information objects
+ * @throws {Error} If there's an issue with browser automation or page loading
+ */
 async function fetchYoutubeLinks(url) {
     try {
-        // Launch a headless browser with additional configurations
+        // Launch a headless browser with additional configurations for stability
         const browser = await puppeteer.launch({ 
-            headless: false,  // Set to false to see what's happening
+            headless: false,  // Visible browser for debugging
             args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--window-size=1920,1080'
+                '--no-sandbox',           // Required for some environments
+                '--disable-setuid-sandbox',// Additional security flag
+                '--window-size=1920,1080' // Set consistent window size
             ]
         });
         
         console.log('Browser launched');
         const page = await browser.newPage();
 
-        // Set viewport to a reasonable size
+        // Configure viewport for consistent rendering
         await page.setViewport({ width: 1920, height: 1080 });
 
         console.log('Navigating to:', url);
         
-        // Use a longer timeout and different wait strategy
+        // Navigate to the target URL with extended timeout for slower connections
         await page.goto(url, {
-            waitUntil: 'domcontentloaded', // Changed from networkidle0 to domcontentloaded
-            timeout: 60000 // Increased to 60 seconds
+            waitUntil: 'domcontentloaded', // Less strict than networkidle0 for better reliability
+            timeout: 60000 // 60 second timeout for slow connections
         });
 
         console.log('Initial page load complete, waiting for content...');
 
-        // Wait for some initial content to load
+        // Wait for the main content container to ensure page is interactive
         try {
             await page.waitForSelector('#content', { timeout: 60000 });
             console.log('Main content container found');
@@ -38,29 +50,32 @@ async function fetchYoutubeLinks(url) {
             console.log('Timeout waiting for #content, but continuing...');
         }
 
-        // Give the page some time to load dynamic content
+        // Allow time for dynamic content to load
         await page.waitForTimeout(5000);
         
         console.log('Scrolling to load more content...');
         
-        // Scroll a few times to load more content
+        // Simulate scrolling to trigger lazy loading of more videos
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => {
                 window.scrollBy(0, window.innerHeight * 2);
             });
-            await page.waitForTimeout(2000); // Increased wait time between scrolls
+            await page.waitForTimeout(2000); // Wait between scrolls to allow content to load
         }
 
-        // Wait a bit more after scrolling
+        // Additional wait time for final content load
         await page.waitForTimeout(2000);
 
-        // Extract video information
+        // Extract video information using page evaluation
         const videoInfo = await page.evaluate(() => {
+            // Select all video thumbnail links
             const videos = document.querySelectorAll('a#thumbnail[href*="watch"]');
             return Array.from(videos).map(anchor => {
+                // Find the parent container for each video
                 const container = anchor.closest('ytd-rich-item-renderer, ytd-video-renderer');
                 if (!container) return null;
                 
+                // Extract title and channel information
                 const title = container.querySelector('#video-title')?.textContent?.trim() || '';
                 const channelName = container.querySelector('#channel-name a, #text > a')?.textContent?.trim() || '';
                 
@@ -69,12 +84,12 @@ async function fetchYoutubeLinks(url) {
                     title: title,
                     channel: channelName
                 };
-            }).filter(info => info && info.url && info.title);
+            }).filter(info => info && info.url && info.title); // Filter out invalid entries
         });
 
         console.log(`Found ${videoInfo.length} videos`);
         
-        // Close the browser
+        // Clean up resources
         await browser.close();
         
         return videoInfo;
@@ -87,18 +102,23 @@ async function fetchYoutubeLinks(url) {
     }
 }
 
+/**
+ * Saves video information to a CSV file
+ * @param {Array<{url: string, title: string, channel: string}>} data - Array of video information
+ * @param {string} filename - Path to the output CSV file
+ */
 function saveToCSV(data, filename) {
-    // Create CSV header
+    // Define CSV structure
     const header = ['Title', 'Channel', 'URL'];
     
-    // Convert data to CSV rows
+    // Convert video data to CSV format, escaping quotes in text
     const rows = data.map(video => [
         `"${(video.title || '').replace(/"/g, '""')}"`,
         `"${(video.channel || '').replace(/"/g, '""')}"`,
         `"${video.url}"`
     ]);
     
-    // Combine header and rows
+    // Combine header and data rows
     const csvContent = [header, ...rows].map(row => row.join(',')).join('\n');
     
     // Write to file
@@ -106,10 +126,11 @@ function saveToCSV(data, filename) {
     console.log(`Results saved to ${filename}`);
 }
 
-// Use the news destination feed URL
+// Configuration
 const youtubeUrl = 'https://www.youtube.com/feed/news_destination/business';
 const outputFile = path.join(__dirname, 'youtube_news_videos.csv');
 
+// Main execution
 fetchYoutubeLinks(youtubeUrl)
     .then(videos => {
         saveToCSV(videos, outputFile);
