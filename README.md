@@ -1,6 +1,7 @@
-# YouTube Business News Scraper
+# YouTube Business News URL-Scraper
 
 A Node.js application that scrapes YouTube's business news feed and extracts video information including titles, channel names, and URLs. The data is saved to a CSV file for easy analysis.
+![image](https://github.com/user-attachments/assets/a2e8da35-834a-448b-8a63-ede0246f2332)
 
 ## Features
 
