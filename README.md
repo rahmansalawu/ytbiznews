@@ -8,6 +8,7 @@ A Node.js application that scrapes YouTube's business news feed and extracts vid
 - Automated scraping of YouTube's business news feed
 - Extracts video titles, channel names, and URLs
 - Handles dynamic content loading through scrolling
+- Automatic duplicate removal from scraped data
 - Saves results in CSV format
 - Configurable browser settings and timeouts
 
@@ -36,7 +37,8 @@ The script will:
 2. Navigate to YouTube's business news feed
 3. Scroll through the page to load more content
 4. Extract video information
-5. Save the results to `youtube_news_videos.csv` in the project directory
+5. Remove any duplicate entries automatically
+6. Save the cleaned results to `youtube_news_videos.csv` in the project directory
 
 ## Configuration
 
@@ -45,13 +47,16 @@ The script includes several configurable options in `index.js`:
 - Page load timeout (default: 60 seconds)
 - Number of scroll iterations (default: 3)
 - Wait time between scrolls (default: 2 seconds)
+- Automatic duplicate removal (enabled by default)
 
 ## Project Structure
 
-```
-├── index.js           # Main script file
-├── package.json       # Project dependencies and configuration
-└── README.md         # Project documentation
+```plaintext
+ytbiznews/
+├── index.js           # Main script with scraping and duplicate removal logic
+├── package.json       # Project dependencies and scripts
+├── README.md         # Project documentation
+└── youtube_news_videos.csv  # Output file with scraped and cleaned data
 ```
 
 ## Dependencies

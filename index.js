@@ -40,8 +40,8 @@ async function fetchYoutubeLinks(url) {
             timeout: 60000 // 60 second timeout for slow connections
         });
 
-        console.log('Initial page load complete, waiting for content...');
-
+        console.log(`Initial page load complete, waiting for content...`);
+        
         // Wait for the main content container to ensure page is interactive
         try {
             await page.waitForSelector('#content', { timeout: 60000 });
@@ -126,15 +126,47 @@ function saveToCSV(data, filename) {
     console.log(`Results saved to ${filename}`);
 }
 
+/**
+ * Removes duplicate entries from CSV data and saves to the same file
+ * @param {string} filename - Path to the CSV file
+ */
+function removeDuplicates(filename) {
+    console.log('Removing duplicates from CSV...');
+    const content = fs.readFileSync(filename, 'utf-8');
+    const lines = content.split('\n');
+    
+    // Get headers and data
+    const headers = lines[0];
+    const dataLines = lines.slice(1);
+    
+    // Use Set to store unique lines
+    const uniqueLines = new Set(dataLines);
+    
+    // Combine headers with unique data lines
+    const outputContent = [headers, ...uniqueLines].join('\n');
+    
+    // Write back to the same file
+    fs.writeFileSync(filename, outputContent);
+    
+    console.log(`Original number of rows: ${dataLines.length}`);
+    console.log(`Rows after removing duplicates: ${uniqueLines.size}`);
+    console.log(`Number of duplicates removed: ${dataLines.length - uniqueLines.size}`);
+}
+
 // Configuration
 const youtubeUrl = 'https://www.youtube.com/feed/news_destination/business';
 const outputFile = path.join(__dirname, 'youtube_news_videos.csv');
 
 // Main execution
-fetchYoutubeLinks(youtubeUrl)
-    .then(videos => {
-        saveToCSV(videos, outputFile);
-    })
-    .catch(error => {
-        console.error('Failed to fetch videos:', error.message);
-    });
+(async () => {
+    try {
+        console.log('Starting YouTube business news scraper...');
+        const videoInfo = await fetchYoutubeLinks(youtubeUrl);
+        await saveToCSV(videoInfo, outputFile);
+        removeDuplicates(outputFile);
+        console.log('Process completed successfully!');
+    } catch (error) {
+        console.error('Failed to complete the process:', error);
+        process.exit(1);
+    }
+})();
